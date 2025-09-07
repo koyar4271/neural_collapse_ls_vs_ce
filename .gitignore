@@ -11,3 +11,6 @@ result_old/
 result3
 result5
 venv/
+results/
+result3/
+wandb/
