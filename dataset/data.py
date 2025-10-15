@@ -2,7 +2,7 @@
 import os
 import datetime
 
-import numpy
+import numpy as np
 
 import torch
 import torchvision
@@ -34,8 +34,33 @@ def get_dataloader(args):
         transform_test = transforms.Compose([transforms.ToTensor(), normalize])
 
         if args.dset == 'cifar10':
+
+            train_dataset = datasets.CIFAR10('../dataset', train=True, download=True, transform=transform_train)
+
+            if args.noise_ratio > 0.0:
+                print(f"Adding symmetric label noise with ratio: {args.noise_ratio}")
+
+                original_labels = np.array(train_dataset.targets)
+                noisy_labels = original_labels.copy()
+                num_classes = 10
+
+                num_noise = int(args.noise_ratio * len(original_labels))
+                noise_indices = np.random.choice(len(original_labels), size=num_noise, replace=False)
+
+                for i in noise_indices:
+                    original_label = original_labels[i]
+
+                    new_label = np.random.randint(0, num_classes)
+                    while new_label == original_label:
+                        new_label = np.random.randint(0, num_classes)
+                    noisy_labels[i] = new_label
+
+                train_dataset.targets = noisy_labels.tolist()
+                print("Label noise has been added to the training set.")
+
+
             train_loader = torch.utils.data.DataLoader(
-                datasets.CIFAR10('../dataset', train=True, download=True, transform=transform_train),
+                train_dataset,
                 batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True, persistent_workers=True
             )
             test_loader = torch.utils.data.DataLoader(
