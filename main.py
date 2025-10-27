@@ -5,6 +5,7 @@ import torch
 import random
 import pickle
 import argparse
+from dotenv import load_dotenv
 from nc_metric import analysis_feat
 from model import ResNet, MLP
 from dataset.data import get_dataloader
@@ -18,6 +19,7 @@ from torch.nn import functional as F
 from sklearn.metrics import confusion_matrix
 from metrics import ECELoss, AdaptiveECELoss
 
+load_dotenv()
 
 def classwise_acc(targets, preds):
     eps = np.finfo(np.float64).eps
@@ -183,9 +185,16 @@ def main(args):
                 }, step=epoch)
 
             # ================= check NCs
-            logits, labels, feats = get_logits_labels_feats(train_loader, model)  # on cuda
-            nc_train, centroid = analysis_feat(labels, feats, args, W=model.classifier.weight.detach(),centroid=None)
-            nc_val, _ = analysis_feat(labels, feats, args, W=model.classifier.weight.detach(), centroid=centroid)
+            #logits, labels, feats = get_logits_labels_feats(train_loader, model)  # on cuda
+            #nc_train, centroid = analysis_feat(labels, feats, args, W=model.classifier.weight.detach(),centroid=None)
+            #nc_val, _ = analysis_feat(labels, feats, args, W=model.classifier.weight.detach(), centroid=centroid)
+            train_logits, train_labels, train_feats = get_logits_labels_feats(train_loader, model)
+            nc_train, centroid = analysis_feat(train_labels, train_feats, args, W=model.classifier.weight.detach(), centroid=None)
+            
+            # --- using test data ---
+            val_logits, val_labels, val_feats = get_logits_labels_feats(test_loader, model)
+            nc_val, _ = analysis_feat(val_labels, val_feats, args, W=model.classifier.weight.detach(), centroid=centroid)
+            
             state['var_cls'] = nc_train['var_cls']
 
             wandb.log({
@@ -290,9 +299,12 @@ if __name__ == "__main__":
     parser.add_argument('--exp_name', type=str, default='baseline')
     parser.add_argument('--save_ckpt', type=int, default=-1)
     parser.add_argument('--log_freq', type=int, default=2)
-
+    
+    parser.add_argument('--noise_ratio', type=float, default=0.0, help='Ratio of label noise to add to training data')
+    parser.add_argument('--imbalance_ratio', type=float, default = 1.0, help = 'Ratio for minority classes in imabalanced dataset (1.0 means balanced dataset)')
+    
     args = parser.parse_args()
-    args.output_dir = os.path.join('/scratch/lg154/sseg/neural_collapse/result/{}/{}/'.format(args.dset, args.model), args.exp_name)
+    args.output_dir = os.path.join('./results/{}/{}/'.format(args.dset, args.model), args.exp_name)
 
     if args.dset == 'cifar100':
         args.num_classes=100
@@ -309,11 +321,27 @@ if __name__ == "__main__":
     log('save log to path {}'.format(args.output_dir))
     log(print_args(args))
 
-    os.environ["WANDB_API_KEY"] = "xxx"
+    WANDB_API_KEY = os.environ.get("WANDB_API_KEY")
+
+    #os.environ["WANDB_API_KEY"] = "xxx"
     os.environ["WANDB_MODE"] = "online"  # "dryrun"
-    os.environ["WANDB_CACHE_DIR"] = "/wandb"
-    os.environ["WANDB_CONFIG_DIR"] = "/wandb"
-    wandb.login(key='xxxxxxx')
+    wand_dir=os.path.join(args.output_dir, "wandb_files")
+    os.makedirs(wand_dir, exist_ok=True)
+    os.environ["WANDB_CACHE_DIR"] = wand_dir
+    os.environ["WANDB_CONFIG_DIR"] = wand_dir
+
+    if WANDB_API_KEY:
+        try:
+            wandb.login(key=WANDB_API_KEY)
+        except Exception as e:
+            print(f"Failed to login to Weights & Biases, key: {e}") 
+            print("Attemptin annonymous login or manual login...")
+            wandb.login()
+    else:
+        print("WANDB_API_KEY not found in environment variables.")
+        print("Attempting annonymous login or manual login...")
+        wandb.login()
+
     wandb.init(project='nc_2025',
                name=args.exp_name
                )
