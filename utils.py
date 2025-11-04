@@ -283,13 +283,27 @@ class Graph_Vars:
             if key not in self.__dict__:
                 self.__setattr__(key, [])
 
-    def load_dt(self, nc_dt, epoch):
+    def load_dt(self, nc_dt, epoch, lr = None):
         self.epoch.append(epoch)
+        if lr is not None:
+            if not hasattr(self, 'lr'):
+                self.lr = []
+            self.lr.append(lr)
         for key in nc_dt:
             try:
                 self.__getattribute__(key).append(nc_dt[key])
             except:
-                print('{} is not attribute of Graph var'.format(key))
+                if not hasattr(self, key):
+                    self.__setattr__(key, [])
+                    self.__getattribute__(key).append(nc_dt[key])
+                else:
+                    print('{} is not attribute of Graph var'.format(key))
+        #self.epoch.append(epoch)
+        #for key in nc_dt:
+        #    try:
+        #        self.__getattribute__(key).append(nc_dt[key])
+        #    except:
+        #        print('{} is not attribute of Graph var'.format(key))
 
 
 def set_log_path(path):
@@ -369,3 +383,47 @@ class AverageMeter(object):
         fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
         return fmtstr.format(**self.__dict__)
 
+class DRLoss(nn.Module):
+    """Dot-Regression Loss (Eq 14 from arXiv:2111.08630).
+    L = (1 / (2 * sqrt(E_W * E_H))) * (w_c^T * h - sqrt(E_W * E_H))^2
+    This loss must be used with a fixed ETF classifier.
+    """
+    def __init__(self, reduction='mean', E_W=1.0, E_H=1.0):
+        super(DRLoss, self).__init__()
+        self.reduction = reduction
+        # Target value: sqrt(E_W * E_H)
+        self.target_val = torch.sqrt(torch.tensor(E_W * E_H, dtype=torch.float32))
+        # Scaling factor: 1 / (2 * sqrt(E_W * E_H))
+        self.scale_factor = 1.0 / (2.0 * self.target_val)
+        if torch.isinf(self.scale_factor): # Handle E_W or E_H being 0
+            self.scale_factor = 0.0
+
+    def forward(self, features, classifier_weights, targets):
+        """
+        Calculates the DR Loss.
+        Args:
+            features (torch.Tensor): Backbone features (h), shape (batch_size, feat_dim).
+            classifier_weights (torch.Tensor): Fixed classifier weights (W*), shape (num_classes, feat_dim).
+            targets (torch.Tensor): Ground truth labels, shape (batch_size).
+        """
+        # Get target class weight vectors w_c*
+        # classifier_weights[targets] -> shape (batch_size, feat_dim)
+        w_c = classifier_weights[targets]
+
+        # Calculate dot product (w_c^T * h)
+        # (batch_size, 1, feat_dim) @ (batch_size, feat_dim, 1) -> (batch_size, 1, 1)
+        dot_product = torch.bmm(features.unsqueeze(1), w_c.unsqueeze(2)).squeeze(-1).squeeze(-1)
+
+        # Calculate squared error (dot_product - target_val)^2
+        loss = (dot_product - self.target_val.to(dot_product.device)) ** 2
+        
+        # Apply scaling factor
+        loss = self.scale_factor.to(loss.device) * loss
+
+        # Apply reduction (mean or sum)
+        if self.reduction == 'mean':
+            return loss.mean()
+        elif self.reduction == 'sum':
+            return loss.sum()
+        else:
+            return loss
