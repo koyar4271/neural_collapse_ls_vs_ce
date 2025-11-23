@@ -40,7 +40,14 @@ class ResNet(nn.Module):
             weight /= torch.sqrt((1 / num_classes * torch.norm(weight, 'fro') ** 2))
 
             self.classifier.weight = nn.Parameter(torch.mm(weight, torch.eye(num_classes, resnet_model.fc.in_features)))
-            self.classifier.weight.requires_grad_(False)
+            self.classifier.weight.requires_grad_(False) # Freeze the weights of the final layer 
+            """ 
+            example K = 3, d = 5
+            W = [[ 0.8165, 0.4082, 0.4082, 0.0000, 0.0000],
+                [-0.4082, 0.8165, -0.4082, 0.0000, 0.0000],
+                [-0.4082, -0.4082, 0.8165, 0.0000, 0.0000]]
+            """
+
 
     def forward(self, x, ret_feat=False):
         x = self.features(x)
@@ -75,3 +82,54 @@ class MLP(nn.Module):
             return x, features
         else:
             return x
+        
+class MNIST_MLP(nn.Module):
+    def __init__(self, hidden, depth=3, fc_bias=True, num_classes=10, args=None):
+        # Depth means how many layers before final linear layer
+
+        super(MNIST_MLP, self).__init__()
+        
+        input_dim = 784
+        self.feat_dim = hidden
+
+        layers = [nn.Linear(input_dim, hidden), nn.BatchNorm1d(num_features=hidden), nn.ReLU()]
+        for i in range(depth - 1):
+            layers += [nn.Linear(hidden, hidden), nn.BatchNorm1d(num_features=hidden), nn.ReLU()]
+
+        self.layers = nn.Sequential(*layers)
+        self.classifier = nn.Linear(hidden, num_classes, bias=fc_bias)
+        print(fc_bias)
+
+        if args is not None and args.ETF_fc:
+            log_print = print if args is None else print
+            log_print(f"Setting Fixed ETF Classifier for MNIST_MLP (feat_dim={self.feat_dim}, num_classes={num_classes})")
+            
+            weight = torch.sqrt(torch.tensor(num_classes / (num_classes - 1))) * (
+                    torch.eye(num_classes) - (1 / num_classes) * torch.ones((num_classes, num_classes)))
+            
+            if self.feat_dim < num_classes:
+                 log_print("Warning: Feature dimension (hidden) is less than num_classes. ETF initialization may be complex.")
+
+            if self.feat_dim >= num_classes:
+                W_etf = torch.zeros(num_classes, self.feat_dim)
+                W_etf[:, :num_classes] = weight
+            else:
+                W_etf = weight[:, :self.feat_dim]
+
+            self.classifier.weight = nn.Parameter(W_etf)
+            self.classifier.weight.requires_grad_(False)
+            
+            if self.classifier.bias is not None:
+                self.classifier.bias.data.fill_(0)
+
+
+    def forward(self, x, ret_feat=False):
+        x = x.view(x.shape[0], -1)
+        x = self.layers(x)
+        features = F.normalize(x)
+        out = self.classifier(x)
+
+        if ret_feat:
+            return out, x 
+        else:
+            return out
