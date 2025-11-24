@@ -14,3 +14,4 @@ results/
 result3/
 wandb/
 .env
+.csv
