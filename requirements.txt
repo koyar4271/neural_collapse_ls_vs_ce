@@ -47,9 +47,9 @@ seaborn==0.13.2
 six==1.17.0
 stack-data==0.6.3
 sympy==1.13.1
-torch==2.5.1+cu124
-torchaudio==2.5.1+cu124
-torchvision==0.20.1+cu124
+torch==2.5.1
+torchaudio==2.5.1
+torchvision==0.20.1
 tqdm==4.67.1
 traitlets==5.14.3
 triton==3.1.0
