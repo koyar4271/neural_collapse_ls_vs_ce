@@ -21,7 +21,7 @@ class ResNet(nn.Module):
 
         if small_kernel:
             conv1_out_ch = resnet_model.conv1.out_channels
-            if args.dset in ['fmnist', 'mnist']:
+            if args.dset in ['fmnist', 'mnist', 'kmnist']:
                 resnet_model.conv1 = nn.Conv2d(1, conv1_out_ch, kernel_size=3, stride=1, padding=1, bias=False)  # Small dataset filter size used by He et al. (2015)
             else:
                 resnet_model.conv1 = nn.Conv2d(3, conv1_out_ch, kernel_size=3, stride=1, padding=1, bias=False)  # Small dataset filter size used by He et al. (2015)
@@ -92,9 +92,14 @@ class MNIST_MLP(nn.Module):
         input_dim = 784
         self.feat_dim = hidden
 
-        layers = [nn.Linear(input_dim, hidden), nn.BatchNorm1d(num_features=hidden), nn.ReLU()]
-        for i in range(depth - 1):
-            layers += [nn.Linear(hidden, hidden), nn.BatchNorm1d(num_features=hidden), nn.ReLU()]
+        layers = []
+        layers += [nn.Linear(input_dim, hidden), nn.BatchNorm1d(hidden), nn.ReLU()]
+        for i in range(depth - 2):
+            layers += [nn.Linear(hidden, hidden), nn.BatchNorm1d(hidden), nn.ReLU()]
+
+        layers += [nn.Linear(hidden, hidden)]
+
+        layers += [nn.BatchNorm1d(hidden)]
 
         self.layers = nn.Sequential(*layers)
         self.classifier = nn.Linear(hidden, num_classes, bias=fc_bias)

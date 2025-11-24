@@ -163,13 +163,25 @@ def get_dataloader(args):
         test_loader = torch.utils.data.DataLoader(datasets.STL10('data', split='test', download=True, transform=test_tranform), batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True, persistent_workers=True)
     # ... (other datasets) ...
 
-    elif args.dset == 'mnist':
+    elif args.dset in ['mnist', 'fmnist', 'kmnist']:
+        if args.dset == 'mnist':
+            DARASER_CLASS = datasets.MNIST
+            normalize_mean = (0.1307,)
+            normalize_std = (0.3081,)
+        elif args.dset == 'fmnist':
+            DARASER_CLASS = datasets.FashionMNIST
+            normalize_mean = (0.2860,)
+            normalize_std = (0.3530,)
+        elif args.dset == 'kmnist':
+            DARASER_CLASS = datasets.KMNIST
+            normalize_mean = (0.1904,)
+            normalize_std = (0.3475,)
         transform =transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.1207,), (0.3081,))
+            transforms.Normalize(normalize_mean, normalize_std)
         ])
-        train_dataset_full = datasets.MNIST(root='../dataset', train=True, download=True, transform=transform)
-        valset = datasets.MNIST(root='../dataset', train=False, download=True, transform=transform)
+        train_dataset_full = DARASER_CLASS(root='../dataset', train=True, download=True, transform=transform)
+        valset = DARASER_CLASS(root='../dataset', train=False, download=True, transform=transform)
         num_classes = 10
         if hasattr(args, 'imbalance_ratio') and args.imbalance_ratio < 1.0:
             train_dataset_maybe_imbalanced = create_imbalanced_dataset(

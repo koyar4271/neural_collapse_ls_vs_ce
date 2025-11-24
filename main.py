@@ -7,7 +7,7 @@ import pickle
 import argparse
 from dotenv import load_dotenv
 from nc_metric import analysis_feat
-from model import ResNet, MLP
+from model import ResNet, MLP, MNIST_MLP
 from dataset.data import get_dataloader
 from temperature_scaling import ModelWithTemperature
 from utils import Graph_Vars, set_log_path, log, print_args, get_scheduler, get_logits_labels_feats, AverageMeter
@@ -111,10 +111,16 @@ def main(args):
     train_loader, test_loader = get_dataloader(args)
 
     # ====================  define model ====================
-    if args.model.lower() == 'mlp':
-        model = MLP(hidden = args.width, depth = args.depth, fc_bias=args.bias, num_classes=args.num_classes)
-    else:
+    model_name = args.model.lower()
+    if model_name.startswith('resnet'):
         model = ResNet(pretrained=False, num_classes=args.num_classes, backbone=args.model, args=args)
+    elif model_name == 'mlp':
+        if args.dset in ['fmnist', 'mnist', 'kmnist']:
+            model = MNIST_MLP(hidden = args.width, depth = args.depth, fc_bias=args.bias, num_classes=args.num_classes)
+        else: #  cifar10 etc.
+            model = MLP(hidden = args.width, depth = args.depth, fc_bias=args.bias, num_classes=args.num_classes)
+    else:
+        raise ValueError(f"Unsupported model type: {args.model}")
     model = model.to(device)
     
     state = {}
@@ -141,7 +147,11 @@ def main(args):
     ece_criterion20 = ECE_dt[args.ece_type](n_bins=20).cuda()
     ece_criterion25 = ECE_dt[args.ece_type](n_bins=25).cuda()
 
-    optimizer = torch.optim.SGD(model.parameters(), momentum=0.9, lr=args.lr, weight_decay=args.wd)
+    # optimizer = torch.optim.SGD(model.parameters(), momentum=0.9, lr=args.lr, weight_decay=args.wd)
+    
+    learnable_params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = torch.optim.SGD(learnable_params, momentum=0.9, lr=args.lr, weight_decay=args.wd)
+    
     lr_scheduler = get_scheduler(args, optimizer)
 
     # ====================  start training ====================
@@ -210,7 +220,7 @@ def main(args):
                 'val_nc/ncc_acc': nc_val['ncc_acc'],
             }, step=epoch)
             
-            if (epoch + 1) % (args.log_freq*5) == 0 or epoch == 0:
+            if (epoch + 1) % (args.log_freq*5) == 0 or epoch == 0 or (epoch >= args.max_epochs - 16):
                 data = [[label, nc1_tr, nc1_va, var_tr, var_va, acc] for (label, nc1_tr, nc1_va, var_tr, var_va, acc) in
                         zip(np.arange(args.num_classes), nc_train['nc1_cls'], nc_val['nc1_cls'], nc_train['var_cls'], nc_val['var_cls'], val_acc_cls)]
                 table = wandb.Table(data=data, columns=["label", "nc1_train", 'nc1_val', 'var_train', 'var_val', 'acc'])
