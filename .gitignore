@@ -1,5 +1,4 @@
 .idea/
-*.txt
 *.out
 *.log
 result/
