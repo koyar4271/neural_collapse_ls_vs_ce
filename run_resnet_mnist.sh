@@ -114,7 +114,7 @@ for current_seed in "${SEEDS[@]}"; do
                   ${loss_flag} \
                   ${eps_flag} \
                   --wd ${WEIGHT_DECAY} \
-                  --scheduler ms \
+                  --scheduler cosine \
                   --max_epochs ${MAX_EPOCHS} \
                   --batch_size ${BATCH_SIZE} \
                   --lr ${LEARNING_RATE} \
