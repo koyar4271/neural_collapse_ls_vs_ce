@@ -116,9 +116,9 @@ def main(args):
         model = ResNet(pretrained=False, num_classes=args.num_classes, backbone=args.model, args=args)
     elif model_name == 'mlp':
         if args.dset in ['fmnist', 'mnist', 'kmnist']:
-            model = MNIST_MLP(hidden = args.width, depth = args.depth, fc_bias=args.bias, num_classes=args.num_classes)
+            model = MNIST_MLP(hidden = args.width, depth = args.depth, fc_bias=args.bias, num_classes=args.num_classes, args=args)
         else: #  cifar10 etc.
-            model = MLP(hidden = args.width, depth = args.depth, fc_bias=args.bias, num_classes=args.num_classes)
+            model = MLP(hidden = args.width, depth = args.depth, fc_bias=args.bias, num_classes=args.num_classes, args=args)
     else:
         raise ValueError(f"Unsupported model type: {args.model}")
     model = model.to(device)
@@ -326,7 +326,7 @@ if __name__ == "__main__":
     set_seed(SEED=args.seed)
 
     if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
+        os.makedirs(args.output_dir, exist_ok=True)
     set_log_path(args.output_dir)
     log('save log to path {}'.format(args.output_dir))
     log(print_args(args))
