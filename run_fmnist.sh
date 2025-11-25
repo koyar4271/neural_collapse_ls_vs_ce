@@ -34,7 +34,7 @@ declare -a LOSS_TYPES=("ce" "ls")
 # --- Other Fixed Settings ---
 MAX_EPOCHS=800
 BATCH_SIZE=128
-LEARNING_RATE=0.05
+LEARNING_RATE=0.001
 WEIGHT_DECAY=5e-4
 LOG_FREQ=1
 SAVE_CKPT=100
@@ -111,7 +111,7 @@ for current_imbalance_ratio in "${IMBALANCE_RATIOS[@]}"; do
               ${loss_flag} \
               ${eps_flag} \
               --wd ${WEIGHT_DECAY} \
-              --scheduler ms \
+              --scheduler cosine \
               --max_epochs ${MAX_EPOCHS} \
               --batch_size ${BATCH_SIZE} \
               --lr ${LEARNING_RATE} \

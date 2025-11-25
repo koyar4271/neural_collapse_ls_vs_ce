@@ -19,22 +19,22 @@ SEED=2021
 
 # --- Parallel Execution Settings ---
 MAX_PARALLEL_JOBS=2     # Max concurrent jobs
-CPU_THREADS_PER_JOB=1   # Threads per job (MKL/OMP/OPENBLAS)
+CPU_THREADS_PER_JOB=2   # Threads per job (MKL/OMP/OPENBLAS)
 
 # --- Experiment Parameters ---
 # Imbalance ratios to test (e.g., 0.1, 0.01)
-declare -a IMBALANCE_RATIOS=(0.1)
+declare -a IMBALANCE_RATIOS=(0.1 0.01)
 # Noise ratios to test (0.0=Clean, >0.0=Noisy)
-declare -a NOISE_RATIOS=(0.1)
+declare -a NOISE_RATIOS=(0.0 0.1)
 # Fixed FC options
-declare -a FIXED_FC_OPTIONS=("yes")
+declare -a FIXED_FC_OPTIONS=("no" "yes")
 # Loss types
-declare -a LOSS_TYPES=("ls")
+declare -a LOSS_TYPES=("ce" "ls")
 
 # --- Other Fixed Settings ---
 MAX_EPOCHS=800
 BATCH_SIZE=128
-LEARNING_RATE=0.05
+LEARNING_RATE=0.001
 WEIGHT_DECAY=5e-4
 LOG_FREQ=1
 SAVE_CKPT=100
@@ -111,7 +111,7 @@ for current_imbalance_ratio in "${IMBALANCE_RATIOS[@]}"; do
               ${loss_flag} \
               ${eps_flag} \
               --wd ${WEIGHT_DECAY} \
-              --scheduler ms \
+              --scheduler cosine \
               --max_epochs ${MAX_EPOCHS} \
               --batch_size ${BATCH_SIZE} \
               --lr ${LEARNING_RATE} \
