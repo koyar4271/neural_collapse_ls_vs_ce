@@ -39,6 +39,10 @@ WEIGHT_DECAY=5e-4
 LOG_FREQ=1
 SAVE_CKPT=100
 
+# MLP Architecture Settings
+MLP_WIDTH=2048
+MLP_DEPTH=4
+
 echo "===== Starting Hypothesis Verification (Parallel) ====="
 echo "Model: ${TARGET_MODEL}, Dataset: ${TARGET_DATASET}, LS Eps: ${TARGET_LS_EPS}"
 echo "Max Jobs: ${MAX_PARALLEL_JOBS}, Threads/Job: ${CPU_THREADS_PER_JOB}"
@@ -107,6 +111,8 @@ for current_imbalance_ratio in "${IMBALANCE_RATIOS[@]}"; do
           python main.py \
               --dset ${TARGET_DATASET} \
               --model ${TARGET_MODEL} \
+              --width ${MLP_WIDTH} \
+              --depth ${MLP_DEPTH} \
               --seed ${SEED} \
               ${loss_flag} \
               ${eps_flag} \
