@@ -26,7 +26,7 @@ CPU_THREADS_PER_JOB=2   # Threads per job (MKL/OMP/OPENBLAS)
 # Imbalance ratios to test (e.g., 0.1, 0.01)
 declare -a IMBALANCE_RATIOS=(0.1 0.05 0.01)
 # Noise ratios to test (0.0=Clean, >0.0=Noisy)
-declare -a NOISE_RATIOS=(0.0 0.1)
+declare -a NOISE_RATIOS=(0.0 0.1 0.2)
 # Fixed FC options
 declare -a FIXED_FC_OPTIONS=("yes" "no")
 # Loss types
