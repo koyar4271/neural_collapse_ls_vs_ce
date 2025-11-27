@@ -161,7 +161,7 @@ def main(args):
         lr_scheduler.step()
             
         # ================= check ECE
-        if (epoch + 1) % args.log_freq == 0 or epoch == 0:
+        if (epoch + 1) % args.log_freq == 0 or epoch == 0 or (epoch >= args.max_epochs - 16):
             logits, labels, feats = get_logits_labels_feats(test_loader, model)   # on cuda
             val_loss = F.cross_entropy(logits, labels, reduction='mean').item()   # on cuda 
             val_acc = (logits.argmax(dim=-1) == labels).sum().item()/len(labels)  # on cuda
