@@ -15,11 +15,11 @@
 TARGET_MODEL="resnet18"
 TARGET_LS_EPS=0.05
 
-declare -a TARGET_DATASETS=("mnist" "kmnist" "fmnist")
-declare -a SEEDS=(2022)
+declare -a TARGET_DATASETS=("mnist")
+declare -a SEEDS=(2021)
 
 # --- Parallel Execution Settings ---
-MAX_PARALLEL_JOBS=1     # Max concurrent jobs
+MAX_PARALLEL_JOBS=2     # Max concurrent jobs
 CPU_THREADS_PER_JOB=2   # Threads per job (MKL/OMP/OPENBLAS)
 
 # --- Experiment Parameters ---
@@ -35,7 +35,7 @@ declare -a LOSS_TYPES=("ce" "ls")
 # --- Other Fixed Settings ---
 MAX_EPOCHS=800
 BATCH_SIZE=128
-LEARNING_RATE=0.01
+LEARNING_RATE=0.05
 WEIGHT_DECAY=5e-4
 LOG_FREQ=1
 SAVE_CKPT=100
