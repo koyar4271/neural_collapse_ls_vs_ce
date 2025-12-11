@@ -13,7 +13,7 @@ class ResNet(nn.Module):
     def __init__(self, pretrained=False, num_classes=10, small_kernel=True, backbone='resnet18', args=None):
         super(ResNet, self).__init__()
 
-        self.loss_type = args.loss if args is not None and hasatter(args, 'loss') else 'ce'
+        self.loss_type = args.loss if args is not None and hasattr(args, 'loss') else 'ce'
 
         # Load the pretrained ResNet model
         if args.norm == 'bn':
@@ -55,7 +55,7 @@ class ResNet(nn.Module):
         x = self.features(x)
         x = x.view(x.size(0), -1)
 
-        if self.load_type == 'dr':
+        if self.loss_type == 'dr':
             x = F.normalize(x, p=2, dim =1)
 
         out = self.classifier(x)

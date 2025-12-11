@@ -11,7 +11,7 @@ from model import ResNet, MLP, MNIST_MLP
 from dataset.data import get_dataloader
 from temperature_scaling import ModelWithTemperature
 from utils import Graph_Vars, set_log_path, log, print_args, get_scheduler, get_logits_labels_feats, AverageMeter
-from utils import CrossEntropyLabelSmooth, CrossEntropyHinge, KoLeoLoss, FocalLoss
+from utils import CrossEntropyLabelSmooth, CrossEntropyHinge, DRLoss, FocalLoss, KoLeoLoss
 
 import numpy as np
 import torch.nn as nn
@@ -38,6 +38,8 @@ def train_one_epoch(model, criterion, train_loader, optimizer, args, state):
     train_kl_loss = AverageMeter('KoLeo_Loss', ':.4e')
     train_acc = AverageMeter('Train_acc', ':.4e')
     koleo_loss = KoLeoLoss(type=args.koleo_type)
+
+    is_dr_loss = (args.loss == 'dr')
     
     for batch_idx, (data, target) in enumerate(train_loader, start=1):
         if data.shape[0] != args.batch_size:
@@ -47,8 +49,14 @@ def train_one_epoch(model, criterion, train_loader, optimizer, args, state):
         out, feat = model(data, ret_feat=True)
 
         optimizer.zero_grad()
+
+        if is_dr_loss:
+            if not args.ETF_fc: raise ValueError("DR requires ETF_fc")
+            fixed_weights = model.classifier.weight.detach()
+            main_loss = criterion(feat, fixed_weights, target)
+        else:
+            main_loss = criterion(out, target)
         
-        ce_loss = criterion(out, target) 
         
         kl_loss = torch.tensor(0.0).to(device)
         
@@ -91,8 +99,8 @@ def train_one_epoch(model, criterion, train_loader, optimizer, args, state):
                 kl_loss = koleo_loss(feat-state['GLB_mean'].detach(), (state['CLS_mean']-state['GLB_mean']).detach(), 
                                      labels=target, cls_weight=kl_cls_weight)
             
-        total_loss = ce_loss + kl_loss * args.koleo_wt  
-        train_loss.update(ce_loss.item(), target.size(0))
+        total_loss = main_loss + kl_loss * args.koleo_wt  
+        train_loss.update(main_loss.item(), target.size(0))
         train_kl_loss.update(kl_loss.item(), target.size(0))
 
         total_loss.backward()
@@ -132,6 +140,11 @@ def main(args):
 
     if args.loss == 'ce':
         criterion = nn.CrossEntropyLoss()
+    elif args.loss == 'dr':
+        E_W = getattr(args, 'dr_E_W', 1.0)
+        E_H = getattr(args, 'dr_E_H', 1.0)
+        criterion = DRLoss(E_W=E_W, E_H=E_H)
+        print(f"Using DR Loss with E_W={E_W}, E_H={E_H}")
     elif args.loss == 'ls':
         criterion = CrossEntropyLabelSmooth(args.num_classes, epsilon=args.eps)
     elif args.loss == 'fl':
