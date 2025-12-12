@@ -15,7 +15,7 @@
 TARGET_MODEL="mlp"
 TARGET_DATASET="mnist"
 TARGET_LS_EPS=0.05
-SEED=2021
+SEED=2022
 
 # --- Parallel Execution Settings ---
 MAX_PARALLEL_JOBS=2     # Max concurrent jobs
@@ -23,9 +23,9 @@ CPU_THREADS_PER_JOB=2   # Threads per job (MKL/OMP/OPENBLAS)
 
 # --- Experiment Parameters ---
 # Imbalance ratios to test (e.g., 0.1, 0.01)
-declare -a IMBALANCE_RATIOS=(0.1 0.01)
+declare -a IMBALANCE_RATIOS=(0.1 0.05 0.01)
 # Noise ratios to test (0.0=Clean, >0.0=Noisy)
-declare -a NOISE_RATIOS=(0.0 0.1)
+declare -a NOISE_RATIOS=(0.0 0.05 0.1)
 # Fixed FC options
 declare -a FIXED_FC_OPTIONS=("no" "yes")
 # Loss types
@@ -34,7 +34,7 @@ declare -a LOSS_TYPES=("ce" "ls")
 # --- Other Fixed Settings ---
 MAX_EPOCHS=800
 BATCH_SIZE=128
-LEARNING_RATE=0.001
+LEARNING_RATE=0.01
 WEIGHT_DECAY=5e-4
 LOG_FREQ=1
 SAVE_CKPT=100
