@@ -18,7 +18,7 @@ TARGET_LS_EPS=0.05
 SEED=2022
 
 # --- Parallel Execution Settings ---
-MAX_PARALLEL_JOBS=2     # Max concurrent jobs
+MAX_PARALLEL_JOBS=1     # Max concurrent jobs
 CPU_THREADS_PER_JOB=2   # Threads per job (MKL/OMP/OPENBLAS)
 
 # --- Experiment Parameters ---
@@ -27,7 +27,7 @@ declare -a IMBALANCE_RATIOS=(0.1 0.05 0.01)
 # Noise ratios to test (0.0=Clean, >0.0=Noisy)
 declare -a NOISE_RATIOS=(0.0 0.05 0.1)
 # Fixed FC options
-declare -a FIXED_FC_OPTIONS=("no" "yes")
+declare -a FIXED_FC_OPTIONS=("yes")
 # Loss types
 declare -a LOSS_TYPES=("ce" "ls")
 
