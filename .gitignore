@@ -16,3 +16,4 @@ wandb/
 .env
 *.csv
 figures/
+artifacts/
